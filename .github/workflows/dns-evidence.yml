@@ -1,0 +1,37 @@
+name: dns-evidence
+on: push
+permissions:
+  contents: write
+jobs:
+  dns:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Collect DNS
+        shell: bash
+        run: |
+          set +e
+          {
+            echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            for h in homosapiens-api-preview.homosapiens.id visio-runtime-preview.homosapiens.id visio.homosapiens.id; do
+              echo "## $h"
+              getent ahostsv4 "$h" || true
+              python3 - "$h" <<'PY'
+import socket, sys
+h=sys.argv[1]
+try:
+    print("socket=", socket.gethostbyname_ex(h))
+except Exception as e:
+    print("socket_error=", repr(e))
+PY
+            done
+          } > dns-evidence.txt
+          cat dns-evidence.txt
+      - name: Persist evidence
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dns-evidence.txt
+          git commit -m "chore: persist dns evidence" || exit 0
+          git push
