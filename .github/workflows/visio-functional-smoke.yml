@@ -1,0 +1,42 @@
+name: visio-functional-smoke
+on:
+  push:
+permissions:
+  contents: write
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout4v4
+      - name: Validate routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://visio-runtime-preview.homosapiens.id"
+          rm -f health.json plan.json generate.json evidence.txt
+          HEALTH_CODE=$(curl -sSS -o health.json -w '%{http_code}' "$BASE/health")
+          PLAN_CODE=$(curl -sSS -o plan.json -w '%{http_code}' -X POST -F 'instruction=gerar uma imagem' -F 'has_image=false' "$BASE/api/v2/plan")
+          GEN_CODE=$(curl -sSS -o generate.json -w '%{http_code}' -H 'Content-Type: application/json' -d '{"prompt":"x"}' "$BASE/api/v1/generate")
+          {
+            echo "health_code=$HEALTH_CODE"
+            echo "health_body=$(cat health.json)"
+            echo "plan_code=$PLAN_CODE"
+            echo "plan_body=$(cat plan.json)"
+            echo "generate_invalid_code=$GEN_CODE"
+            echo "generate_invalid_body=$(cat generate.json)"
+          } > evidence.txt
+          cat evidence.txt
+          test "$HEALTH_CODE" = "200"
+          grep -q '"ok":true' health.json
+          test "$PLAN_CODE" = "200"
+          grep -q '"action":"generate"' plan.json
+          test "$GEN_CODE" = "400"
+          grep -q 'prompt_invalido' generate.json
+      - name: Persist result
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add evidence.txt
+          git commit -m "chore: persist Visio functional smoke" || exit 0
+          git push
