@@ -1,0 +1,28 @@
+name: check-visio-openai
+on:
+  push:
+    paths:
+      - ".github/workflows/check-visio-openai.yml"
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check health
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSS https://visio-runtime-preview.homosapiens.id/health -o health.json
+
+          cat health.json | python3 -c 'import json,sys; j=json.load(sys.stdin); print("openai_configured=%s" % str(bool(j.get("openai_configured", False))).lower())' > openai-status.txt
+          cat openai-status.txt
+      - name: Persist status
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add openai-status.txt
+          git commit -m "chore: record Visio OpenAI status" || exit 0
+          git push
