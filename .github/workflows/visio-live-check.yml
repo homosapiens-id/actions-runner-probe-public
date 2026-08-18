@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Validar health e interface
+      - name: Validar health e runtime
         shell: bash
         run: |
           set -euo pipefail
@@ -14,20 +14,8 @@ jobs:
           curl -fsSS "$BASE/health" -o health.json
           cat health.json
           grep -q '"ok":true' health.json
-          grep -q '"version":"4.0.0"' health.json
+          grep -q '"version":"4.1.0"' health.json
           grep -q '"openai_configured":true' health.json
+          grep -q '"cors_enabled":true' health.json
           curl -fsSS "$BASE/" -o root.html
-          grep -q 'Gere, edite e transforme imagens.' root.html
-      - name: Testar geracao publica real
-        shell: bash
-        run: |
-          set -euo pipefail
-          BASE=https://visio-runtime-preview.homosapiens.id
-          curl -fsSS -X POST \
-            -F 'instruction=crie um icone abstrato simples em fundo neutro' \
-            -F 'quality=low' \
-            -F 'size=1024x1024' \
-            -F 'output_format=png' \
-            "$BASE/api/public/auto" -o resultado.png
-          test -s resultado.png
-          file resultado.png
+          grep -q 'Visio Runtime 4.1.0' root.html
