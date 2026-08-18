@@ -1,0 +1,21 @@
+name: visio-production-e2e
+on: push
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar superfície e ligação
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSSL https://visio.homosapiens.id/ -o /tmp/visio.html
+          grep -q 'Visio' /tmp/visio.html
+          grep -q 'HomoSapiens' /tmp/visio.html
+          grep -q 'visio-runtime-preview.homosapiens.id' /tmp/visio.html
+          curl -fsSS https://visio-runtime-preview.homosapiens.id/health -o /tmp/health.json
+          grep -q '"version":"4.1.0"' /tmp/health.json
+          grep -q '"openai_configured":true' /tmp/health.json
+          curl -fsSI -X OPTIONS https://visio-runtime-preview.homosapiens.id/api/public/auto \
+            -H 'Origin: https://visio.homosapiens.id' \
+            -H 'Access-Control-Request-Method: POST' > /tmp/cors.txt
+          grep -qi 'access-control-allow-origin: https://visio.homosapiens.id' /tmp/cors.txt
