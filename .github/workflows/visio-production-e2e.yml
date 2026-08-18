@@ -1,40 +1,48 @@
 name: visio-production-e2e
 on: push
-
 jobs:
-  e2e:
+  page:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
     steps:
-      - name: Validar produção por etapas
+      - name: Public page
         shell: bash
         run: |
           set -euo pipefail
-          CURL='curl --connect-timeout 10 --max-time 20'
-
-          echo 'STEP 1 public page'
-          $CURL -fsSSL https://visio.homosapiens.id/ -o /tmp/visio.html
+          curl --connect-timeout 10 --max-time 20 -fsSSL https://visio.homosapiens.id/ -o /tmp/visio.html
           grep -q 'Visio' /tmp/visio.html
           grep -q 'HomoSapiens' /tmp/visio.html
-          echo 'STEP 1 OK'
 
-          echo 'STEP 2 runtime reference'
+  runtime_ref:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Runtime reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --connect-timeout 10 --max-time 20 -fsSSL https://visio.homosapiens.id/ -o /tmp/visio.html
           grep -q 'visio-runtime-preview.homosapiens.id' /tmp/visio.html
           grep -q '/api/public/auto' /tmp/visio.html
-          echo 'STEP 2 OK'
 
-          echo 'STEP 3 health'
-          $CURL -fsSS https://visio-runtime-preview.homosapiens.id/health -o /tmp/health.json
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Runtime health
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --connect-timeout 10 --max-time 20 -fsSS https://visio-runtime-preview.homosapiens.id/health -o /tmp/health.json
           cat /tmp/health.json
           grep -q '"version":"4.1.0"' /tmp/health.json
           grep -q '"openai_configured":true' /tmp/health.json
-          echo 'STEP 3 OK'
 
-          echo 'STEP 4 cors preflight'
-          $CURL -fsSI -X OPTIONS https://visio-runtime-preview.homosapiens.id/api/public/auto             -H 'Origin: https://visio.homosapiens.id'             -H 'Access-Control-Request-Method: POST'             -H 'Access-Control-Request-Headers: content-type' > /tmp/cors.txt
+  cors:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Production CORS
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --connect-timeout 10 --max-time 20 -fsSI -X OPTIONS https://visio-runtime-preview.homosapiens.id/api/public/auto             -H 'Origin: https://visio.homosapiens.id'             -H 'Access-Control-Request-Method: POST'             -H 'Access-Control-Request-Headers: content-type' > /tmp/cors.txt
           cat /tmp/cors.txt
           grep -qi 'access-control-allow-origin: https://visio.homosapiens.id' /tmp/cors.txt
           grep -qi 'access-control-allow-methods: GET,POST,OPTIONS' /tmp/cors.txt
-          echo 'STEP 4 OK'
-
-          echo 'VISIO_PRODUCTION_E2E_OK'
