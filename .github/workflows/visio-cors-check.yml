@@ -1,0 +1,21 @@
+name: visio-cors-check
+on: push
+jobs:
+  cors:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar health e CORS
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://visio-runtime-preview.homosapiens.id"
+          curl -fsSS "$BASE/health" -o health.json
+          cat health.json
+          grep -q '"version":"4.1.0"' health.json
+          curl -fsSI -X OPTIONS "$BASE/api/public/auto" \
+            -H "Origin: https://visio.homosapiens.id" \
+            -H "Access-Control-Request-Method: POST" \
+            -H "Access-Control-Request-Headers: content-type" > headers.txt
+          cat headers.txt
+          grep -qi 'access-control-allow-origin: https://visio.homosapiens.id' headers.txt
+          grep -qi 'access-control-allow-methods: GET,POST,RPTBIGNS' headers.txt
