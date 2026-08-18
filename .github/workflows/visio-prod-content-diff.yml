@@ -1,0 +1,25 @@
+name: visio-prod-content-diff
+on: push
+jobs:
+  diff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Comparar producao com fonte
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --connect-timeout 10 --max-time 20 -fsSSL https://visio.homosapiens.id/ -o /tmp/prod.html
+          curl --connect-timeout 10 --max-time 20 -fsSSL https://raw.githubusercontent.com/homosapiens-id/visio-static/main/index.html -o /tmp/src.html
+          echo "PROD_SHA256=$(sha256sum /tmp/prod.html | cut -d' ' -f1)"
+          echo "SRC_SHA256=$(sha256sum /tmp/src.html | cut -d' ' -f1)"
+          echo "PROD_SIZE=$(wc -c < /tmp/prod.html)"
+          echo "SRC_SIZE=$(wc -c < /tmp/src.html)"
+          echo "PROD_HEAD=$(head -c 200 /tmp/prod.html | tr '\\n' ' ')"
+          echo "SRC_HEAD=$(head -c 200 /tmp/src.html | tr '\\n' ' ')"
+          if cmp -s /tmp/prod.html /tmp/src.html; then
+            echo "CONTENT_MATCH=1"
+          else
+            echo "CONTENT_MATCH=0"
+            exit 43
+          fi
